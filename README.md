@@ -1,4 +1,3 @@
-README = r"""
 # Stock Analysis System — Automated, Monetization-Ready (Hybrid B)
 
 
@@ -25,6 +24,3 @@ Quick deploy steps:
 3. Configure affiliate links in templates/report_template.html.
 4. Enable GitHub Actions in repo — scheduled job will run daily.
 5. (Optional) Host output/daily_report.html via GitHub Pages or convert to Streamlit for subscription.
-
-
-"""
