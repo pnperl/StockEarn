@@ -1,0 +1,8 @@
+yfinance
+pandas
+numpy
+matplotlib
+mplfinance
+requests
+jinja2
+pyyaml
