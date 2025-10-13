@@ -1,0 +1,11 @@
+{
+"BOT_TOKEN": "<telegram-bot-token>",
+"CHAT_ID": "<telegram-chat-id>",
+"AFFILIATES": {
+"zerodha": "https://zerodha.com/open-account?ref=YOUR_ID",
+"dhan": "https://dhan.co/?ref=YOUR_ID"
+},
+"SYMBOLS": ["RELIANCE.NS","TCS.NS","HDFCBANK.NS"],
+"TIMEFRAMES": ["1d","1wk","1mo"],
+"REPORT_PATH": "output/daily_report.html"
+}
