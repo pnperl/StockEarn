@@ -1,7 +1,11 @@
 import json
 import datetime
+import os
 import requests
 from jinja2 import Template
+
+# Ensure output folder exists
+os.makedirs('output', exist_ok=True)
 
 # Initialize fundamentals dictionary
 fundamentals = {'PE': None, 'ROE': None}
@@ -9,20 +13,23 @@ fundamentals = {'PE': None, 'ROE': None}
 # Ensure signals list exists
 signals = []
 
-# Loop over your symbols (assuming you have a list `symbols`)
+# Example list of symbols (replace with your actual symbols list)
+symbols = ['AAPL', 'MSFT', 'GOOG']  # replace with real symbols
+
+# Loop over symbols
 for sym in symbols:
     try:
-        # Get latest data for this symbol (ensure latest is defined)
-        latest = get_latest_data(sym)  # replace with your function
-        score_short = get_score_short(sym)  # replace with your function
-        score_medium = get_score_medium(sym)  # replace with your function
-        score_long = get_score_long(sym)  # replace with your function
+        # Fetch or compute latest data and scores
+        latest = get_latest_data(sym)       # define your own function
+        score_short = get_score_short(sym)  # define your own function
+        score_medium = get_score_medium(sym)  # define your own function
+        score_long = get_score_long(sym)    # define your own function
 
-        # simple signal rule
+        # Simple signal rule
         signal = 'BUY' if (
-            latest['rsi'] < 60
-            and latest['macd_cross'] == 'bullish'
-            and latest['ema_cross'] == 'bullish'
+            latest.get('rsi', 100) < 60
+            and latest.get('macd_cross') == 'bullish'
+            and latest.get('ema_cross') == 'bullish'
         ) else 'HOLD'
 
         rec = {
@@ -31,7 +38,7 @@ for sym in symbols:
             'score_medium': round(score_medium, 2),
             'score_long': round(score_long, 2),
             'signal': signal,
-            'rsi': round(latest['rsi'], 2) if latest['rsi'] is not None else None,
+            'rsi': round(latest['rsi'], 2) if latest.get('rsi') is not None else None,
             'macd_cross': latest.get('macd_cross'),
             'ema_cross': latest.get('ema_cross'),
             'fundamentals': fundamentals
@@ -57,9 +64,10 @@ try:
     html = tpl.render(
         signals=signals,
         generated_at=str(datetime.datetime.now()),
-        affiliates=AFFILIATES  # make sure AFFILIATES is defined
+        affiliates=AFFILIATES  # ensure AFFILIATES dict/list is defined
     )
 
+    REPORT_PATH = 'output/daily_report.html'
     with open(REPORT_PATH, 'w') as f:
         f.write(html)
 
@@ -67,7 +75,7 @@ except Exception as e:
     print('Error rendering HTML report:', e)
 
 # Telegram alert
-BOT = cfg.get('BOT_TOKEN')  # ensure cfg is defined
+BOT = cfg.get('BOT_TOKEN')  # ensure cfg dict is defined
 CHAT = cfg.get('CHAT_ID')
 
 if BOT and CHAT:
