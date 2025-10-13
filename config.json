@@ -1,9 +1,8 @@
 {
-"BOT_TOKEN": "<telegram-bot-token>",
-"CHAT_ID": "<telegram-chat-id>",
+"BOT_TOKEN": "8259673192:AAFokUiz7gHQ7kdKWM4www8Y2Db50ULnyj8",
+"CHAT_ID": "309411734",
 "AFFILIATES": {
-"zerodha": "https://zerodha.com/open-account?ref=YOUR_ID",
-"dhan": "https://dhan.co/?ref=YOUR_ID"
+"zerodha": "https://zerodha.com/open-account?ref=XW3772",
 },
 "SYMBOLS": ["RELIANCE.NS","TCS.NS","HDFCBANK.NS"],
 "TIMEFRAMES": ["1d","1wk","1mo"],
