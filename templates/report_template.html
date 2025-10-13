@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Daily Stock Report</title>
+<style>
+body {font-family: Arial, sans-serif; padding: 20px}
+.card {border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:8px}
+.header {display:flex; justify-content:space-between}
+.symbols {display:flex; gap:12px; flex-wrap:wrap}
+.meta {font-size:0.9em;color:#666}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>Daily Stock Report</h1>
+<div class="meta">Generated: {{ generated_at }}</div>
+</div>
+
+
+<h3>Top Picks</h3>
+<div class="symbols">
+{% for s in signals %}
+<div class="card">
+<h2>{{ s.symbol }}</h2>
+<div>Signal: <b>{{ s.signal }}</b></div>
+<div>Score (S/M/L): {{ s.score_short }} / {{ s.score_medium }} / {{ s.score_long }}</div>
+<div>RSI: {{ s.rsi }}, MACD: {{ s.macd_cross }}, EMA50/200: {{ s.ema_cross }}</div>
+<div>PE: {{ s.fundamentals.PE }} | ROE: {{ s.fundamentals.ROE }}</div>
+<p>
+<a href="{{ affiliates.zerodha }}" target="_blank">Trade on Zerodha</a> |
+<a href="{{ affiliates.dhan }}" target="_blank">Trade on Dhan</a>
+</p>
+</div>
+{% endfor %}
+</div>
+
+
+<hr>
+<footer>Automated report — update config.json to change symbols/timeframes.</footer>
+</body>
+</html>
