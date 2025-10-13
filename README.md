@@ -1,6 +1,6 @@
 # Stock Analysis System — Automated, Monetization-Ready (Hybrid B)
 
-
+https://grok.com/c/2a56a8f1-c706-4cdb-ad02-2afd8ad46983
 This repository contains a ready-to-deploy, low-code, automation-first stock analysis system that:
 - Runs multi-timeframe technical + fundamental analysis
 - Produces an HTML daily report with affiliate buttons
