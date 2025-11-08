@@ -1,42 +1,51 @@
-<!doctype html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Daily Stock Report</title>
-<style>
-body {font-family: Arial, sans-serif; padding: 20px}
-.card {border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:8px}
-.header {display:flex; justify-content:space-between}
-.symbols {display:flex; gap:12px; flex-wrap:wrap}
-.meta {font-size:0.9em;color:#666}
-</style>
+    <title>Daily Stock Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style> table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid #ddd; padding: 8px;} th {background-color: #f2f2f2;} </style>
 </head>
 <body>
-<div class="header">
-<h1>Daily Stock Report</h1>
-<div class="meta">Generated: {{ generated_at }}</div>
-</div>
+    <h1>Stock Analysis Report</h1>
+    <p>Generated at: {{ generated_at }}</p>
 
+    <!-- Table of Signals -->
+    <h2>Summary Table</h2>
+    <table>
+        <tr><th>Symbol</th><th>Signal</th><th>RSI</th><th>Short Score</th><th>Medium Score</th><th>Long Score</th></tr>
+        {% for signal in signals %}
+        <tr>
+            <td>{{ signal.symbol }}</td>
+            <td><strong>{{ signal.signal }}</strong></td>
+            <td>{{ signal.rsi }}</td>
+            <td>{{ signal.score_short }}</td>
+            <td>{{ signal.score_medium }}</td>
+            <td>{{ signal.score_long }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 
-<h3>Top Picks</h3>
-<div class="symbols">
-{% for s in signals %}
-<div class="card">
-<h2>{{ s.symbol }}</h2>
-<div>Signal: <b>{{ s.signal }}</b></div>
-<div>Score (S/M/L): {{ s.score_short }} / {{ s.score_medium }} / {{ s.score_long }}</div>
-<div>RSI: {{ s.rsi }}, MACD: {{ s.macd_cross }}, EMA50/200: {{ s.ema_cross }}</div>
-<div>PE: {{ s.fundamentals.PE }} | ROE: {{ s.fundamentals.ROE }}</div>
-<p>
-<a href="{{ affiliates.zerodha }}" target="_blank">Trade on Zerodha</a> |
-<a href="{{ affiliates.dhan }}" target="_blank">Trade on Dhan</a>
-</p>
-</div>
-{% endfor %}
-</div>
+    <!-- Bar Chart: RSI and Scores per Stock -->
+    <h2>Visual Chart: RSI & Scores</h2>
+    <canvas id="stockChart" width="400" height="200"></canvas>
+    <script>
+        const ctx = document.getElementById('stockChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [{% for signal in signals %}'{{ signal.symbol }}', {% endfor %}],
+                datasets: [
+                    { label: 'RSI', data: [{% for signal in signals %}{{ signal.rsi or 0 }}, {% endfor %}], backgroundColor: 'rgba(75, 192, 192, 0.6)' },
+                    { label: 'Short Score', data: [{% for signal in signals %}{{ signal.score_short }}, {% endfor %}], backgroundColor: 'rgba(54, 162, 235, 0.6)' },
+                    { label: 'Medium Score', data: [{% for signal in signals %}{{ signal.score_medium }}, {% endfor %}], backgroundColor: 'rgba(255, 206, 86, 0.6)' },
+                    { label: 'Long Score', data: [{% for signal in signals %}{{ signal.score_long }}, {% endfor %}], backgroundColor: 'rgba(153, 102, 255, 0.6)' }
+                ]
+            },
+            options: { scales: { y: { beginAtZero: true, max: 100 } }, responsive: true }
+        });
+    </script>
 
-
-<hr>
-<footer>Automated report — update config.json to change symbols/timeframes.</footer>
+    <!-- Affiliate Link -->
+    <h2>Ready to Trade?</h2>
+    <p><a href="{{ affiliates.Broker }}" style="background: #007cba; color: white; padding: 10px; text-decoration: none;">Trade Now - Affiliate Broker</a></p>
 </body>
 </html>
