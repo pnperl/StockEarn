@@ -1,42 +1,42 @@
-name: Daily Analysis Run
-
+name: Daily Stock Analysis
 on:
   schedule:
-    - cron: '30 2 * * *' # 8:00 AM IST
-  workflow_dispatch:
+    - cron: '0 17 * * *'  # Daily at 5 PM UTC (adjust for market close)
+  workflow_dispatch:  # Manual trigger
 
 jobs:
-  build:
+  run-analysis:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v4  # Updated to v4 for better perf
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+    - name: Install dependencies
+      run: pip install -r requirements.txt
 
-      - name: Run analysis
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python analysis.py
+    - name: Run analysis
+      run: python analysis.py
 
-      - name: Upload outputs as artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: stock-reports
-          path: output/
-    
-      - name: Commit outputs
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'actions@github.com'
-          git add output || true
-          if git diff --quiet --exit-code; then
-            echo 'No changes'
-          else
-            git commit -m 'Auto-update report' && git push
-          fi
+    - name: Upload outputs as artifacts  # NEW: Downloadable zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: stock-reports-${{ github.run_number }}  # Unique per run
+        path: output/
+        retention-days: 7  # Keep for 7 days
+
+    - name: Commit outputs to repo  # FIXED: Force commit every run
+      run: |
+        git config --global user.name 'github-actions'
+        git config --global user.email 'actions@github.com'
+        git add output/ || true
+        git add -f output/*  # Force add new/modified files
+        if git diff --staged --quiet; then
+          echo 'No changes to commit'
+        else
+          git commit -m "Updated daily stock reports [$(date +%Y-%m-%d %H:%M UTC)]"
+          git push
+        fi
