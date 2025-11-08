@@ -1,0 +1,44 @@
+[
+  {
+    "symbol": "AAPL",
+    "score_short": 0.75,
+    "score_medium": 0.65,
+    "score_long": 0.55,
+    "signal": "HOLD",
+    "rsi": 63.6,
+    "macd_cross": "bearish",
+    "ema_cross": "bearish",
+    "fundamentals": {
+      "PE": null,
+      "ROE": null
+    }
+  },
+  {
+    "symbol": "MSFT",
+    "score_short": 0.75,
+    "score_medium": 0.65,
+    "score_long": 0.55,
+    "signal": "HOLD",
+    "rsi": 35.84,
+    "macd_cross": "bearish",
+    "ema_cross": "bearish",
+    "fundamentals": {
+      "PE": null,
+      "ROE": null
+    }
+  },
+  {
+    "symbol": "GOOG",
+    "score_short": 0.75,
+    "score_medium": 0.65,
+    "score_long": 0.55,
+    "signal": "HOLD",
+    "rsi": 68.71,
+    "macd_cross": "bearish",
+    "ema_cross": "bearish",
+    "fundamentals": {
+      "PE": null,
+      "ROE": null
+    }
+  }
+]
