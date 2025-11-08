@@ -24,6 +24,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python analysis.py
 
+      - name: Upload outputs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-reports
+          path: output/
+    
       - name: Commit outputs
         run: |
           git config --global user.name 'github-actions'
