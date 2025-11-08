@@ -166,24 +166,26 @@ try:
 except Exception as e:
     print('Error rendering HTML report:', e)
 
-# Telegram alert (fixes cfg at line 78)
-BOT = cfg.get('BOT_TOKEN')
-CHAT = cfg.get('CHAT_ID')
+# Telegram alert (secure: uses env vars from secrets)
+import os  # Add this import at top if missing
+BOT = os.getenv('BOT_TOKEN') or cfg.get('BOT_TOKEN')
+CHAT = os.getenv('CHAT_ID') or cfg.get('CHAT_ID')
 
 if BOT and CHAT:
     try:
         buy_list = [s['symbol'] for s in signals if s['signal'] == 'BUY']
-        msg = '<b>Top Buys</b>\n' + ('None' if not buy_list else '\n'.join(buy_list))
-
+        msg = '<b>Top Buys Today</b>\n' + ('None' if not buy_list else '\n'.join(buy_list))
+        if buy_list:
+            msg += f'\n\nFull report: {os.getenv("REPO_URL", "https://github.com/pnperl/StockEarn")}/blob/main/output/daily_report.html'  # Link to report
         response = requests.post(
             f'https://api.telegram.org/bot{BOT}/sendMessage',
             data={'chat_id': CHAT, 'text': msg, 'parse_mode': 'HTML'}
         )
         response.raise_for_status()
-        print("Telegram alert sent successfully!")
+        print("Telegram alert sent!")
     except Exception as e:
-        print('Telegram error:', e)
+        print(f'Telegram error: {e}')
 else:
-    print("Skipping Telegram (no BOT_TOKEN or CHAT_ID in config)")
+    print("Skipping Telegram (set BOT_TOKEN & CHAT_ID secrets)")
 
 print('Done. Reports written to', REPORT_PATH)
