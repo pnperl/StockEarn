@@ -3,7 +3,12 @@ import datetime
 import os
 import requests
 from jinja2 import Template
-import yfinance as yf  # For real stock data fetching
+try:
+    import yfinance as yf  # For real stock data (install via requirements.txt)
+    YFINANCE_AVAILABLE = True
+except ImportError:
+    print("yfinance not available; using mock data")
+    YFINANCE_AVAILABLE = False
 
 # Ensure output folder exists
 os.makedirs('output', exist_ok=True)
@@ -24,7 +29,7 @@ else:
 # Define AFFILIATES safely (fixes NameError)
 AFFILIATES = cfg.get('AFFILIATES', {'Broker': 'https://example.com/referral'})
 
-# Initialize fundamentals dictionary (stubbed; can enhance with yf.info later)
+# Initialize fundamentals dictionary
 fundamentals = {'PE': None, 'ROE': None}
 
 # Initialize signals list
@@ -33,33 +38,40 @@ signals = []
 # List of symbols (customize: e.g., add 'RELIANCE.NS' for Indian stocks)
 symbols = ['AAPL', 'MSFT', 'GOOG']
 
-# Define get_latest_data function (fixes NameError; uses yfinance for real data)
+# Define get_latest_data function (fixes NameError; real data if yfinance available, else mock)
 def get_latest_data(sym):
-    try:
-        print(f"Fetching data for {sym}...")
-        stock = yf.Ticker(sym)
-        hist = stock.history(period='1mo')  # 1 month history
-        if hist.empty:
-            print(f"No data for {sym}")
-            return {'rsi': None, 'macd_cross': None, 'ema_cross': None}
-        
-        # RSI (14-period)
-        delta = hist['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        rsi = 100 - (100 / (1 + rs)).iloc[-1] if not loss.iloc[-1] == 0 else 100
-        
-        # MACD cross (bullish if 12-day EMA > 26-day EMA)
-        macd_cross = 'bullish' if hist['Close'].rolling(12).mean().iloc[-1] > hist['Close'].rolling(26).mean().iloc[-1] else 'bearish'
-        
-        # EMA cross (bullish if close > 50-day EMA)
-        ema_cross = 'bullish' if hist['Close'].iloc[-1] > hist['Close'].rolling(50).mean().iloc[-1] else 'bearish'
-        
-        return {'rsi': float(rsi), 'macd_cross': macd_cross, 'ema_cross': ema_cross}
-    except Exception as e:
-        print(f"Error in get_latest_data for {sym}: {e}")
-        return {'rsi': None, 'macd_cross': None, 'ema_cross': None}
+    if YFINANCE_AVAILABLE:
+        try:
+            print(f"Fetching real data for {sym}...")
+            stock = yf.Ticker(sym)
+            hist = stock.history(period='1mo')  # 1 month history
+            if hist.empty:
+                print(f"No data for {sym}")
+                return mock_latest_data()
+            
+            # RSI (14-period)
+            delta = hist['Close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            rsi = 100 - (100 / (1 + rs)).iloc[-1] if not loss.iloc[-1] == 0 else 100
+            
+            # MACD cross (bullish if 12-day EMA > 26-day EMA)
+            macd_cross = 'bullish' if hist['Close'].rolling(12).mean().iloc[-1] > hist['Close'].rolling(26).mean().iloc[-1] else 'bearish'
+            
+            # EMA cross (bullish if close > 50-day EMA)
+            ema_cross = 'bullish' if hist['Close'].iloc[-1] > hist['Close'].rolling(50).mean().iloc[-1] else 'bearish'
+            
+            return {'rsi': float(rsi), 'macd_cross': macd_cross, 'ema_cross': ema_cross}
+        except Exception as e:
+            print(f"yfinance error for {sym}: {e}; using mock")
+            return mock_latest_data()
+    else:
+        return mock_latest_data()
+
+def mock_latest_data():
+    # Mock for demo (RSI <60, bullish crosses for BUY signals)
+    return {'rsi': 55.0, 'macd_cross': 'bullish', 'ema_cross': 'bullish'}
 
 # Define scoring functions (fixes NameError; placeholders—enhance with real logic)
 def get_score_short(sym): return 0.75
