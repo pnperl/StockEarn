@@ -1,66 +1,69 @@
-<!doctype html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Daily Stock Report</title>
-<style>
-body {font-family: Arial, sans-serif; padding: 20px}
-.card {border:1px solid #ddd; padding:12px; margin:8px 0; border-radius:8px}
-.header {display:flex; justify-content:space-between}
-.symbols {display:flex; gap:12px; flex-wrap:wrap}
-.meta {font-size:0.9em;color:#666}
-</style>
+    <title>Daily Stock Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style> table {border-collapse: collapse; width: 100%;} th, td {border: 1px solid #ddd; padding: 8px;} th {background-color: #f2f2f2;} </style>
 </head>
 <body>
-<div class="header">
-<h1>Daily Stock Report</h1>
-<div class="meta">Generated: 2025-11-08 10:14:46.929019</div>
-</div>
+    <h1>Stock Analysis Report</h1>
+    <p>Generated at: 2025-11-08 10:37:12.415226</p>
 
+    <!-- Table of Signals -->
+    <h2>Summary Table</h2>
+    <table>
+        <tr><th>Symbol</th><th>Signal</th><th>RSI</th><th>Short Score</th><th>Medium Score</th><th>Long Score</th></tr>
+        
+        <tr>
+            <td>AAPL</td>
+            <td><strong>HOLD</strong></td>
+            <td>63.6</td>
+            <td>0.75</td>
+            <td>0.65</td>
+            <td>0.55</td>
+        </tr>
+        
+        <tr>
+            <td>MSFT</td>
+            <td><strong>HOLD</strong></td>
+            <td>35.84</td>
+            <td>0.75</td>
+            <td>0.65</td>
+            <td>0.55</td>
+        </tr>
+        
+        <tr>
+            <td>GOOG</td>
+            <td><strong>HOLD</strong></td>
+            <td>68.71</td>
+            <td>0.75</td>
+            <td>0.65</td>
+            <td>0.55</td>
+        </tr>
+        
+    </table>
 
-<h3>Top Picks</h3>
-<div class="symbols">
+    <!-- Bar Chart: RSI and Scores per Stock -->
+    <h2>Visual Chart: RSI & Scores</h2>
+    <canvas id="stockChart" width="400" height="200"></canvas>
+    <script>
+        const ctx = document.getElementById('stockChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['AAPL', 'MSFT', 'GOOG', ],
+                datasets: [
+                    { label: 'RSI', data: [63.6, 35.84, 68.71, ], backgroundColor: 'rgba(75, 192, 192, 0.6)' },
+                    { label: 'Short Score', data: [0.75, 0.75, 0.75, ], backgroundColor: 'rgba(54, 162, 235, 0.6)' },
+                    { label: 'Medium Score', data: [0.65, 0.65, 0.65, ], backgroundColor: 'rgba(255, 206, 86, 0.6)' },
+                    { label: 'Long Score', data: [0.55, 0.55, 0.55, ], backgroundColor: 'rgba(153, 102, 255, 0.6)' }
+                ]
+            },
+            options: { scales: { y: { beginAtZero: true, max: 100 } }, responsive: true }
+        });
+    </script>
 
-<div class="card">
-<h2>AAPL</h2>
-<div>Signal: <b>HOLD</b></div>
-<div>Score (S/M/L): 0.75 / 0.65 / 0.55</div>
-<div>RSI: 63.6, MACD: bearish, EMA50/200: bearish</div>
-<div>PE: None | ROE: None</div>
-<p>
-<a href="https://zerodha.com/open-account?ref=XW3772" target="_blank">Trade on Zerodha</a> |
-<a href="" target="_blank">Trade on Dhan</a>
-</p>
-</div>
-
-<div class="card">
-<h2>MSFT</h2>
-<div>Signal: <b>HOLD</b></div>
-<div>Score (S/M/L): 0.75 / 0.65 / 0.55</div>
-<div>RSI: 35.84, MACD: bearish, EMA50/200: bearish</div>
-<div>PE: None | ROE: None</div>
-<p>
-<a href="https://zerodha.com/open-account?ref=XW3772" target="_blank">Trade on Zerodha</a> |
-<a href="" target="_blank">Trade on Dhan</a>
-</p>
-</div>
-
-<div class="card">
-<h2>GOOG</h2>
-<div>Signal: <b>HOLD</b></div>
-<div>Score (S/M/L): 0.75 / 0.65 / 0.55</div>
-<div>RSI: 68.71, MACD: bearish, EMA50/200: bearish</div>
-<div>PE: None | ROE: None</div>
-<p>
-<a href="https://zerodha.com/open-account?ref=XW3772" target="_blank">Trade on Zerodha</a> |
-<a href="" target="_blank">Trade on Dhan</a>
-</p>
-</div>
-
-</div>
-
-
-<hr>
-<footer>Automated report — update config.json to change symbols/timeframes.</footer>
+    <!-- Affiliate Link -->
+    <h2>Ready to Trade?</h2>
+    <p><a href="" style="background: #007cba; color: white; padding: 10px; text-decoration: none;">Trade Now - Affiliate Broker</a></p>
 </body>
 </html>
