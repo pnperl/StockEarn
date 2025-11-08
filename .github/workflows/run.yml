@@ -1,14 +1,14 @@
 name: Daily Stock Analysis
 on:
   schedule:
-    - cron: '0 17 * * *'  # Daily at 5 PM UTC (adjust for market close)
+    - cron: '0 17 * * *'  # Daily at 5 PM UTC
   workflow_dispatch:  # Manual trigger
 
 jobs:
-  run-analysis:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4  # Updated to v4 for better perf
+    - uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -21,22 +21,22 @@ jobs:
     - name: Run analysis
       run: python analysis.py
 
-    - name: Upload outputs as artifacts  # NEW: Downloadable zip
+    - name: Upload outputs as artifacts  # NEW: Download zip after every run
       uses: actions/upload-artifact@v4
       with:
-        name: stock-reports-${{ github.run_number }}  # Unique per run
+        name: stock-reports-run-${{ github.run_number }}
         path: output/
-        retention-days: 7  # Keep for 7 days
+        retention-days: 30  # Keep for 30 days
 
-    - name: Commit outputs to repo  # FIXED: Force commit every run
+    - name: Commit outputs to repo  # FIXED: Always add/commit/push
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'actions@github.com'
         git add output/ || true
-        git add -f output/*  # Force add new/modified files
-        if git diff --staged --quiet; then
-          echo 'No changes to commit'
-        else
-          git commit -m "Updated daily stock reports [$(date +%Y-%m-%d %H:%M UTC)]"
+        git add -f output/signals.json output/daily_report.html  # Force specific files
+        if ! git diff --staged --quiet; then
+          git commit -m "Updated daily reports [$(date +%Y-%m-%d %H:%M UTC)]"
           git push
+        else
+          echo 'No new changes'
         fi
