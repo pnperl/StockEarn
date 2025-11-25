@@ -5,7 +5,7 @@
     "score_medium": 0.65,
     "score_long": 0.55,
     "signal": "HOLD",
-    "rsi": 59.04,
+    "rsi": 64.24,
     "macd_cross": "bearish",
     "ema_cross": "bearish",
     "fundamentals": {
@@ -19,7 +19,7 @@
     "score_medium": 0.65,
     "score_long": 0.55,
     "signal": "HOLD",
-    "rsi": 28.1,
+    "rsi": 31.71,
     "macd_cross": "bearish",
     "ema_cross": "bearish",
     "fundamentals": {
@@ -33,7 +33,7 @@
     "score_medium": 0.65,
     "score_long": 0.55,
     "signal": "HOLD",
-    "rsi": 71.56,
+    "rsi": 71.76,
     "macd_cross": "bearish",
     "ema_cross": "bearish",
     "fundamentals": {
