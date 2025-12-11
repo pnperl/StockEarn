@@ -5,4 +5,5 @@
 "SYMBOLS": ["RELIANCE.NS","TCS.NS","HDFCBANK.NS"],
 "TIMEFRAMES": ["1d","1wk","1mo"],
 "REPORT_PATH": "output/daily_report.html"
+"GEMINI_API_KEY": "AIzaSyAfo2RZCV4lvpii-icruS1b2h6m7ZDZzjw"
 }
