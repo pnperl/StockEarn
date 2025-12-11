@@ -1,191 +1,146 @@
+import os
 import json
 import datetime
-import os
 import requests
-from jinja2 import Template
+import pandas as pd
+import yfinance as yf
+# Ensure you have 'google-generativeai' installed: pip install google-generativeai
 try:
-    import yfinance as yf  # For real stock data (install via requirements.txt)
-    YFINANCE_AVAILABLE = True
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
 except ImportError:
-    print("yfinance not available; using mock data")
-    YFINANCE_AVAILABLE = False
+    print("Gemini library not available. Using mock analysis.")
+    GEMINI_AVAILABLE = False
 
-# Ensure output folder exists
-os.makedirs('output', exist_ok=True)
 
-# Load cfg from config.json or use defaults (fixes NameError for 'cfg')
-cfg = {}
-cfg_path = 'config.json'
-if os.path.exists(cfg_path):
+# --- CONFIGURATION & SECRETS ---
+GEMINI_KEY = os.getenv('GEMINI_API_KEY')
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+CHAT_ID = os.getenv('CHAT_ID')
+
+# List of stocks to scan (Nifty 50 + High Momentum Stocks)
+SYMBOLS = [
+    'RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS',
+    'SBIN.NS', 'TATAMOTORS.NS', 'ITC.NS', 'BAJFINANCE.NS', 'BHARTIARTL.NS',
+    'ADANIENT.NS', 'LT.NS', 'AXISBANK.NS', 'MARUTI.NS', 'SUNPHARMA.NS',
+    'TITAN.NS', 'ULTRACEMCO.NS', 'KOTAKBANK.NS', 'WIPRO.NS', 'HCLTECH.NS',
+    'TATASTEEL.NS', 'M&M.NS', 'NTPC.NS', 'POWERGRID.NS', 'ONGC.NS',
+    'COALINDIA.NS', 'BHEL.NS', 'ZOMATO.NS', 'TRENT.NS', 'HAL.NS',
+    'DLF.NS', 'PIDILITIND.NS', 'DMART.NS' 
+]
+
+def get_market_data(sym):
+    """Fetches raw technical data for a stock."""
     try:
-        with open(cfg_path, 'r') as f:
-            cfg = json.load(f)
-        print("Loaded config from config.json")
+        stock = yf.Ticker(sym)
+        hist = stock.history(period='1mo')
+        if hist.empty: return None
+        
+        close = hist['Close'].iloc[-1]
+        change_pct = ((close - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100
+        
+        # RSI
+        delta = hist['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs)).iloc[-1]
+        
+        # Volume Spike
+        vol_avg = hist['Volume'].rolling(20).mean().iloc[-1]
+        vol_curr = hist['Volume'].iloc[-1]
+        vol_factor = round(vol_curr / vol_avg, 1) if vol_avg > 0 else 1.0
+
+        return f"{sym} | CMP: {round(close,1)} | Change: {round(change_pct,1)}% | RSI: {round(rsi,1)} | VolFactor: {vol_factor}x"
     except Exception as e:
-        print(f"Error loading config: {e}. Using defaults.")
-else:
-    print(f"No {cfg_path} found. Using defaults.")
+        # print(f"Error fetching data for {sym}: {e}")
+        return None
 
-# Define AFFILIATES safely (fixes NameError)
-AFFILIATES = cfg.get('AFFILIATES', {'Broker': 'https://example.com/referral'})
+def generate_ai_analysis(data_list):
+    """Sends data to Gemini and strictly controls the output format."""
+    
+    if not (GEMINI_AVAILABLE and GEMINI_KEY):
+        return "⚠️ Gemini API not configured. Check GEMINI_API_KEY in GitHub Secrets."
 
-# Initialize fundamentals dictionary
-fundamentals = {'PE': None, 'ROE': None}
-
-# Initialize signals list
-signals = []
-
-# List of symbols (customize: e.g., add 'RELIANCE.NS' for Indian stocks)
-symbols = ['AAPL', 'MSFT', 'GOOG']
-
-# Define get_latest_data function (fixes NameError; real data if yfinance available, else mock)
-def get_latest_data(sym):
-    if YFINANCE_AVAILABLE:
-        try:
-            print(f"Fetching real data for {sym}...")
-            stock = yf.Ticker(sym)
-            hist = stock.history(period='1mo')  # 1 month history
-            if hist.empty:
-                print(f"No data for {sym}")
-                return mock_latest_data()
-            
-            # RSI (14-period)
-            delta = hist['Close'].diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-            rs = gain / loss
-            rsi = 100 - (100 / (1 + rs)).iloc[-1] if not loss.iloc[-1] == 0 else 100
-            
-            # MACD cross (bullish if 12-day EMA > 26-day EMA)
-            macd_cross = 'bullish' if hist['Close'].rolling(12).mean().iloc[-1] > hist['Close'].rolling(26).mean().iloc[-1] else 'bearish'
-            
-            # EMA cross (bullish if close > 50-day EMA)
-            ema_cross = 'bullish' if hist['Close'].iloc[-1] > hist['Close'].rolling(50).mean().iloc[-1] else 'bearish'
-            
-            return {'rsi': float(rsi), 'macd_cross': macd_cross, 'ema_cross': ema_cross}
-        except Exception as e:
-            print(f"yfinance error for {sym}: {e}; using mock")
-            return mock_latest_data()
-    else:
-        return mock_latest_data()
-
-def mock_latest_data():
-    # Mock for demo (RSI <60, bullish crosses for BUY signals)
-    return {'rsi': 55.0, 'macd_cross': 'bullish', 'ema_cross': 'bullish'}
-
-# Define scoring functions (fixes NameError; placeholders—enhance with real logic)
-def get_score_short(sym): return 0.75
-def get_score_medium(sym): return 0.65
-def get_score_long(sym): return 0.55
-
-# Loop over symbols to generate signals
-for sym in symbols:
+    print("🧠 Sending data to Gemini for analysis...")
+    model = genai.GenerativeModel('gemini-2.0-flash')
+    
+    # 🎯 STRICT PROMPT: Ensure it returns ONLY the report content
+    prompt = f"""
+    You are the most experienced stock market research analyst.
+    Identify the top 5 most probable profitable NSE stocks for tomorrow (Buy side).
+    Focus on stocks showing strong technical momentum (RSI 50-70) or recent volume-backed breakouts (VolFactor > 1.5x).
+    
+    The raw data is:
+    {data_list}
+    
+    CRITICAL OUTPUT RULE: Your response must contain ONLY the formatted report below, with absolutely NO introduction, commentary, or text before or after the report. Use HTML tags <b> and <i> only for formatting.
+    
+    REPORT FORMAT (STRICT):
+    
+    🚀 <b>Top 5 High-Conviction NSE Stocks for Tomorrow</b>
+    
+    Market Sentiment: [One concise sentence about the market/Nifty trend, e.g., 'Bullish/Volatile due to Fed cues.']
+    <i>Focus on high relative strength & breakout counters.</i>
+    
+    [Loop for 5 stocks, numbered 1️⃣ to 5️⃣]
+    1️⃣ <b>Stock Name (SYMBOL)</b>
+    • <b>CMP:</b> ₹[Current Price]
+    • <b>Target:</b> ₹[Target Price]+ (5% Upside)
+    • <b>Tech Signal:</b> [Very short technical reason, e.g., Strong Volume Breakout or RSI Reversal]
+    • <b>Stop Loss:</b> ₹[Stop Loss Price]
+    [End loop]
+    
+    📉 <b>Index Outlook:</b> [One concise sentence about Nifty support/resistance.]
+    
+    ⚠️ <b>Risk Note:</b> Strict Stop Loss is non-negotiable. These are high-risk/high-reward momentum setups.
+    """
+    
     try:
-        latest = get_latest_data(sym)
-        score_short = get_score_short(sym)
-        score_medium = get_score_medium(sym)
-        score_long = get_score_long(sym)
-
-        # Signal logic
-        signal = 'BUY' if (
-            latest.get('rsi', 100) < 60
-            and latest.get('macd_cross') == 'bullish'
-            and latest.get('ema_cross') == 'bullish'
-        ) else 'HOLD'
-
-        rec = {
-            'symbol': sym,
-            'score_short': round(score_short, 2),
-            'score_medium': round(score_medium, 2),
-            'score_long': round(score_long, 2),
-            'signal': signal,
-            'rsi': round(latest['rsi'], 2) if latest.get('rsi') is not None else None,
-            'macd_cross': latest.get('macd_cross'),
-            'ema_cross': latest.get('ema_cross'),
-            'fundamentals': fundamentals
-        }
-
-        signals.append(rec)
-        print(f"Processed {sym}: {signal} (RSI: {rec['rsi']})")
-
+        response = model.generate_content(prompt)
+        # Strip any leading/trailing whitespace/markdown, though the prompt should prevent it
+        return response.text.strip()
     except Exception as e:
-        print(f'Error processing {sym}: {e}')
+        return f"❌ Gemini API Error: Could not generate analysis. Check API Key or usage limits. Error: {e}"
 
-# Save JSON
-try:
-    with open('output/signals.json', 'w') as f:
-        json.dump(signals, f, indent=2)
-    print("Saved signals.json")
-except Exception as e:
-    print('Error saving JSON:', e)
+def send_telegram(message):
+    """Sends the final report message to the Telegram chat."""
+    if not (BOT_TOKEN and CHAT_ID):
+        print("❌ Telegram keys missing (BOT_TOKEN or CHAT_ID)")
+        return
 
-# Render HTML report (fixes AFFILIATES and template issues)
-try:
-    template_path = 'templates/report_template.html'
-    if os.path.exists(template_path):
-        with open(template_path, 'r') as f:
-            template_content = f.read()
-        print("Loaded report template from file")
-    else:
-        # Built-in fallback template (no file needed)
-        template_content = """
-        <html>
-        <head><title>Daily Stock Report</title></head>
-        <body>
-            <h1>Stock Analysis Report</h1>
-            <p>Generated at: {{ generated_at }}</p>
-            <table border="1">
-                <tr><th>Symbol</th><th>Signal</th><th>RSI</th><th>Short Score</th></tr>
-                {% for signal in signals %}
-                <tr>
-                    <td>{{ signal.symbol }}</td>
-                    <td>{{ signal.signal }}</td>
-                    <td>{{ signal.rsi }}</td>
-                    <td>{{ signal.score_short }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-            <p>Affiliate Broker: <a href="{{ affiliates.Broker }}">Trade Now</a></p>
-        </body>
-        </html>
-        """
-        print("Using built-in fallback template")
-
-    tpl = Template(template_content)
-    html = tpl.render(
-        signals=signals,
-        generated_at=str(datetime.datetime.now()),
-        affiliates=AFFILIATES
-    )
-
-    REPORT_PATH = 'output/daily_report.html'
-    with open(REPORT_PATH, 'w') as f:
-        f.write(html)
-    print(f"Saved report to {REPORT_PATH}")
-
-except Exception as e:
-    print('Error rendering HTML report:', e)
-
-# Telegram alert (secure: uses env vars from secrets)
-import os  # Add this import at top if missing
-BOT = os.getenv('BOT_TOKEN') or cfg.get('BOT_TOKEN')
-CHAT = os.getenv('CHAT_ID') or cfg.get('CHAT_ID')
-
-if BOT and CHAT:
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': CHAT_ID, 
+        'text': message, 
+        'parse_mode': 'HTML', 
+        'disable_web_page_preview': True
+    }
     try:
-        buy_list = [s['symbol'] for s in signals if s['signal'] == 'BUY']
-        msg = '<b>Top Buys Today</b>\n' + ('None' if not buy_list else '\n'.join(buy_list))
-        if buy_list:
-            msg += f'\n\nFull report: {os.getenv("REPO_URL", "https://github.com/pnperl/StockEarn")}/blob/main/output/daily_report.html'  # Link to report
-        response = requests.post(
-            f'https://api.telegram.org/bot{BOT}/sendMessage',
-            data={'chat_id': CHAT, 'text': msg, 'parse_mode': 'HTML'}
-        )
-        response.raise_for_status()
-        print("Telegram alert sent!")
+        requests.post(url, data=payload)
+        print("✅ Telegram alert sent!")
     except Exception as e:
-        print(f'Telegram error: {e}')
-else:
-    print("Skipping Telegram (set BOT_TOKEN & CHAT_ID secrets)")
+        print(f"❌ Telegram failed: {e}")
 
-print('Done. Reports written to', REPORT_PATH)
+if __name__ == "__main__":
+    print(f"Collecting data for {len(SYMBOLS)} stocks...")
+    
+    # 1. Collect Data
+    market_snapshot = []
+    for sym in SYMBOLS:
+        data = get_market_data(sym)
+        if data:
+            market_snapshot.append(data)
+            
+    # 2. Ask Gemini to Analyze
+    data_string = "\n".join(market_snapshot)
+    ai_report = generate_ai_analysis(data_string)
+    
+    # 3. Send Result
+    print("\n--- AI REPORT SENT TO TELEGRAM ---\n")
+    print(ai_report) 
+    
+    # The crucial part: this function sends ONLY the string returned by Gemini.
+    send_telegram(ai_report)
+    
+    print("\n--- END OF RUN ---")
